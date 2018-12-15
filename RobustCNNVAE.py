@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Thu Nov 22 20:05:29 2018
@@ -10,7 +10,7 @@ import numpy as np
 import numpy.linalg as nplin
 import tensorflow as tf
 import tensorflow.examples.tutorials.mnist.input_data as input_data
-from BasicAutoencoder import DeepVAE as VAE
+from BasicAutoencoder import DeepVAE_cnn as CNNVAE
 from shrink import l1shrink as SHR 
 
 import time
@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 import os
 
-class RVDAE(object):
+class RCNNVDAE(object):
     """
     @Original author: Chong Zhou
     
@@ -29,32 +29,38 @@ class RVDAE(object):
         argmin ||L - Decoder(Encoder(L))|| + ||S||_1
         Use Alternating projection to train model
     """
-    def __init__(self, sess, input_dim,learning_rate = 1e-3, n_z = 5, 
+    def __init__(self, sess, learning_rate = 1e-3, n_latent = 8, input_dim = 28,dec_in_channels = 1,
                  lambda_=1.0, error = 1.0e-7):
         """
         sess: a Tensorflow tf.Session object
-        layers_sizes: a list that contain the deep ae layer sizes, including the input layer
+        learning_rate: CNNVAE learning rate
+        n_latent: number of neurons in the latent layer
+        input_dim: input dimension as a matrix
+        dec_in_channels: number of channels
         lambda_: tuning the weight of l1 penalty of S
         error: converge criterior for jump out training iteration
         """
         self.errors = []
         self.lambda_ = lambda_
         self.error = error
-        self.vae = VAE.VariantionalAutoencoder(sess = sess, input_dim = input_dim, 
-                                               learning_rate = learning_rate, n_z = n_z)
+        self.cnnvae = CNNVAE.Deep_CNNVAE(sess = sess, learning_rate = learning_rate, n_latent = n_latent,
+                   input_dim = input_dim, dec_in_channels = dec_in_channels)
         
-
-    def fit(self, X, path = "", num_gen=10, iteration=20, num_epoch = 100, batch_size=64, verbose=False):
-        
-        ## initialize L, S, mu(shrinkage operator)
+    def fit(self, X, path = "", num_gen=10, iteration=20, num_epoch = 100, batch_size=64, 
+            keep_prob = 1.0, verbose=False):
+        # initialize L, S, mu(shrinkage operator)
         self.L = np.zeros(X.shape)
         self.S = np.zeros(X.shape)
         
-        mu = (X.size) / (4.0 * nplin.norm(X,1))
+        # since the input dimension of nplin must be 1D or 2D, change the shape only for nplin.
+        # https://docs.scipy.org/doc/numpy-1.15.1/reference/generated/numpy.linalg.norm.html
+        X_norm=X.reshape(-1,X.shape[-1]*X.shape[-1])
+        
+        mu = (X_norm.size) / (4.0 * nplin.norm(X_norm,1))
         print ("shrink parameter:", self.lambda_ / mu)
         LS0 = self.L + self.S
 
-        XFnorm = nplin.norm(X,'fro')
+        XFnorm = nplin.norm(X_norm,'fro')
         if verbose:
             print ("X shape: ", X.shape)
             print ("L shape: ", self.L.shape)
@@ -69,28 +75,22 @@ class RVDAE(object):
             ## alternating project, first project to L
             self.L = X - self.S
             ## Using L to train the auto-encoder
-            self.vae.fit(X = self.L, path = path, file_name = "vae_loss"+str(it)+".npy",
-                         num_epoch = num_epoch, batch_size = batch_size)
+            self.cnnvae.fit(X_in = self.L, path = path, file_name = "vae_loss"+str(it)+".npy",
+                         num_epoch = num_epoch, batch_size = batch_size,keep_prob = keep_prob)
             ## get optmized L
-            self.L = self.vae.reconstructor(self.L)
+            self.L = self.cnnvae.reconstructor(self.L,keep_prob)
             ## alternating project, now project to S
             self.S = SHR.shrink(self.lambda_/mu, (X - self.L).reshape(X.size)).reshape(X.shape)
 
             ## break criterion 1: the L and S are close enough to X
-            c1 = nplin.norm(X - self.L - self.S, 'fro') / XFnorm
+            c1 = nplin.norm((X - self.L - self.S).reshape(-1,X.shape[-1]*X.shape[-1]), 'fro') / XFnorm
             ## break criterion 2: there is no changes for L and S 
             c2 = np.min([mu,np.sqrt(mu)]) * nplin.norm(LS0 - self.L - self.S) / XFnorm
             self.errors.append(c1)
             
-            if it % 1 == 0 :
-                print("generation images:")
-                self.vae.plot(FLAG_gen = True, x="", num_gen=num_gen, 
-                              path=path, 
-                              fig_name="generator_"+str(it)+".png")
-#                print("reconstruction images:")
-#                self.vae.plot(FLAG_gen = False, x=self.L[:100], num_gen=num_gen, 
-#                              path=path, 
-#                              fig_name="reconstructor_"+str(it)+".png")
+            print("generation images:")
+            self.cnnvae.plot(FLAG_gen = True, x="", num_gen=num_gen, path=path, 
+                          fig_name="generator_"+str(it)+".png")
             
             if verbose:
                 print ("c1: ", c1)
@@ -104,19 +104,19 @@ class RVDAE(object):
         
         return self.L , self.S, np.array(self.errors)
     
-    # x --> z
-    def transform(self, X):
+    # x -> z
+    def transform(self, X, keep_prob):
         L = X - self.S
-        return self.vae.transformer(L)
+        return self.cnnvae.transformer(L,keep_prob)
     
     # x -> x_hat
-    def getRecon(self, X):
+    def getRecon(self, X, keep_prob):
 #        L = X - self.S
-        return self.vae.reconstructor(self.L)
+        return self.cnnvae.reconstructor(self.L,keep_prob)
     
     # z -> x
-    def generator(self, z):
-        return self.vae.generator(z)
+    def generator(self, z, keep_prob):
+        return self.cnnvae.generator(z,keep_prob)
     
     
  
@@ -125,8 +125,8 @@ def main(noise_factors,debug = True):
     start_time = time.time()
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=False)
     x_train = mnist.train.images
-    
-    n_z = 5
+    input_dim = 28
+    x_train = x_train.reshape(-1,input_dim,input_dim)
     
     batch_size = 256
     iteration = 30
@@ -134,14 +134,14 @@ def main(noise_factors,debug = True):
     num_gen = 100
     if debug:
         batch_size = 64
-        iteration = 2
-        num_epoch = 2
+        iteration = 1
+        num_epoch = 1
         num_gen = 10
     
     
     for noise_factor in noise_factors:
         print("noise factor: ",noise_factor)
-        path = "./save_images_l10_rvae/"
+        path = "./save_images_cnn/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+str(noise_factor)+"/"
@@ -153,12 +153,14 @@ def main(noise_factors,debug = True):
         
         tf.reset_default_graph()
         sess = tf.Session()
-        rvae = RVDAE(sess = sess, input_dim = x_train_noisy.shape[1],learning_rate = 1e-3, n_z = n_z, 
-                     lambda_=10, error = 1.0e-7)
-        L, S, errors = rvae.fit(X = x_train_noisy, path = path, 
+        rcnnvae = RCNNVDAE(sess = sess,learning_rate = 1e-3, n_latent = 8, input_dim = input_dim, dec_in_channels = 1, 
+                     lambda_=100, error = 1.0e-7)
+        
+        L, S, errors = rcnnvae.fit(X = x_train_noisy, path = path, 
                                 num_gen = num_gen,
                                 iteration=iteration, num_epoch = num_epoch, 
-                                batch_size=batch_size, verbose=True)
+                                batch_size=batch_size, keep_prob = 1.0, verbose=True)
+        
         
         x_axis = np.arange(len(errors))
         plt.plot(x_axis, errors, 'r-')
@@ -169,8 +171,8 @@ def main(noise_factors,debug = True):
         plt.show()
         
         np.save(path+"rvae_errors.npy",errors)
-        rvae_recon = rvae.getRecon(x_train_noisy) # get reconstruction
-        rvae_transform = rvae.transform(x_train_noisy) # get transformer
+        rvae_recon = rcnnvae.getRecon(x_train_noisy,keep_prob = 1) # get reconstruction
+        rvae_transform = rcnnvae.transform(x_train_noisy,keep_prob = 1) # get transformer
 
         
         np.save(path+"rvae_recon.npy",rvae_recon)
@@ -183,5 +185,5 @@ def main(noise_factors,debug = True):
     print ('Done_running time:',time.time()-start_time)
     
 if __name__ == "__main__":
-    noise_factors = np.array([0,0.2,0.4])
-    main(noise_factors = noise_factors,debug = False)
+    noise_factors = np.array([0.2,0.4])
+    main(noise_factors = noise_factors,debug = True)

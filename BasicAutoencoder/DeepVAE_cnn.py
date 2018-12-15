@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov 20 20:02:26 2018
@@ -29,6 +29,7 @@ from __future__ import division, print_function, absolute_import
 
 import numpy as np
 import matplotlib.pyplot as plt
+#plt.switch_backend('agg')
 import tensorflow as tf
 import tensorflow.examples.tutorials.mnist.input_data as input_data
 
@@ -68,8 +69,10 @@ class Deep_CNNVAE(object):
         img_loss = tf.reduce_sum(tf.squared_difference(unreshaped, 
                                       tf.reshape(self.X_in,shape=[-1,self.input_dim*self.input_dim])), 1)
         self.img_loss = tf.reduce_mean(img_loss)
-        latent_loss = -0.5 * tf.reduce_sum(1.0 + 2.0 * self.sd - tf.square(self.mn) - tf.exp(2.0 * self.sd), 1)
-        # latent_loss = -0.5 * tf.reduce_sum(sd - tf.square(mn) - tf.exp(sd), 1)
+        # the following formula is from author Aymeric Damien
+#        latent_loss = -0.5 * tf.reduce_sum(1.0 + 2.0 * self.sd - tf.square(self.mn) - tf.exp(2.0 * self.sd), 1)
+        # the following formula is the same as VAE
+        latent_loss = -0.5 * tf.reduce_sum(1.0 + self.sd - tf.square(self.mn) - tf.exp(self.sd), 1)
         self.latent_loss = tf.reduce_mean(latent_loss)
         self.loss = tf.reduce_mean(self.img_loss + self.latent_loss)
         self.optimizer = tf.train.AdamOptimizer(learning_rate = self.learning_rate).minimize(self.loss)
@@ -127,14 +130,15 @@ class Deep_CNNVAE(object):
             for one_batch in batches(sample_size, batch_size):
                 loss, img_loss, latent_loss = self.run_single_step(X_in[one_batch],keep_prob)
             ls_loss.append(loss)
-            if epoch % 1 == 0:
+            if epoch % 5 == 0:
                 print('[epoch {}] Loss: {}, Recon loss: {}, Latent loss: {}'.format(
                     epoch, loss, img_loss, latent_loss))
         np.save(path+file_name,np.array(ls_loss))
                 
     def plot(self,FLAG_gen = True, x="", num_gen=10, path="", fig_name=""):
         """
-        FLAG_gen: flag of generation or reconstruction. True = generation
+        FLAG_gen: flag of generation or reconstruction. 
+            True = generation False = Reconstruction
         x: reconstruction input
         num_gen: number of generation
         path: path of saving
@@ -183,7 +187,7 @@ class Deep_CNNVAE(object):
 if __name__ == "__main__":
     start_time = time.time()
     
-    root = 'save_images/'
+    root = 'save_images_cnn/'
     if not os.path.isdir(root):
         os.mkdir(root)
     
@@ -194,7 +198,6 @@ if __name__ == "__main__":
     mnist = input_data.read_data_sets("../MNIST_data/", one_hot=False)
     X_in = mnist.train.images
     X_in = X_in.reshape(-1,input_dim,input_dim)
-    print("X_in",X_in[1,2,3])
     
     test = mnist.test.next_batch(100)[0]
     test = test.reshape(-1,input_dim,input_dim)
@@ -249,5 +252,5 @@ if __name__ == "__main__":
         plt.figure(figsize=(8, 8))
         plt.title('generation from random noise')
         plt.imshow(I_generated, cmap='gray')
-        plt.show()
+#        plt.show()
         plt.savefig(root+"cnnvae_generator.png")
