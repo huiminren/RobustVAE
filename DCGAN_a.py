@@ -4,7 +4,6 @@
 Created on Mon Dec 17 10:23:50 2018
 @author: huiminren
 Reference: 
-    https://github.com/znxlwm/tensorflow-MNIST-GAN-DCGAN/blob/master/tensorflow_MNIST_DCGAN.py
     https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/3_NeuralNetworks/dcgan.py
 """
 from __future__ import division, print_function, absolute_import
@@ -202,18 +201,18 @@ def main(noise_factors,debug = True):
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=False)
     x_train = mnist.train.images
     
-    batch_size = 256
+    batch_size = 200 # X_in.shape[0] % batch_size == 0
     num_epoch = 30
     num_gen = 100
     if debug:
         x_train = x_train[:100]
-        batch_size = 32
+        batch_size = 10
         num_epoch = 2
         num_gen = 10
     
     for noise_factor in noise_factors:
         print("noise factor: ",noise_factor)
-        path = "save_images_DCGAN/"
+        path = "save_images_DCGAN_a/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+str(noise_factor)+"/"
@@ -232,5 +231,5 @@ def main(noise_factors,debug = True):
     print("running time: ",time.time()-start_time)
     
 if __name__ == "__main__":  
-    noise_factors = np.array([0.2])
-    main(noise_factors = noise_factors,debug = True)
+    noise_factors = np.array([0.2,0.4])
+    main(noise_factors = noise_factors,debug = False)
