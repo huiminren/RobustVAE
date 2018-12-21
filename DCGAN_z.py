@@ -5,7 +5,6 @@ Created on Mon Dec 17 10:23:50 2018
 @author: huiminren
 Reference: 
     https://github.com/znxlwm/tensorflow-MNIST-GAN-DCGAN/blob/master/tensorflow_MNIST_DCGAN.py
-    https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/3_NeuralNetworks/dcgan.py
 """
 from __future__ import division, print_function, absolute_import
 
@@ -50,11 +49,11 @@ class DCGAN(object):
         self.isTrain = tf.placeholder(dtype=tf.bool)
         
         # networks : generator
-        G_z = self.generator(self.z, self.isTrain)
+        self.G_z = self.generator(self.z, self.isTrain)
         
         # networks : discriminator
         D_real, D_real_logits = self.discriminator(self.x, self.isTrain)
-        D_fake, D_fake_logits = self.discriminator(G_z, self.isTrain, reuse=True)
+        D_fake, D_fake_logits = self.discriminator(self.G_z, self.isTrain, reuse=True)
         
         # loss for each network
         D_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=D_real_logits, 
@@ -145,7 +144,8 @@ class DCGAN(object):
             for one_batch in batches(sample_size, self.batch_size):
                 # update discriminator
                 z_ = np.random.normal(0, 1, (self.batch_size, 1, 1, self.noise_dim))
-                loss_d_, _ = self.sess.run([self.D_loss, self.D_optim], {self.x: X_in[one_batch], self.z: z_, self.isTrain: True})
+                loss_d_, _ = self.sess.run([self.D_loss, self.D_optim], {self.x: X_in[one_batch], 
+                                           self.z: z_, self.isTrain: True})
                 D_losses.append(loss_d_)
         
                 # update generator
@@ -167,7 +167,7 @@ class DCGAN(object):
     def plot(self, path, fig_name, num_gen = 100):
         
         np.random.seed(595)
-        h = w = 28
+        h = w = 64
         z = np.random.normal(0, 1, (num_gen, 1, 1, self.noise_dim))
         g = self.get_generation(z)
         
@@ -176,7 +176,7 @@ class DCGAN(object):
         I_generated = np.empty((h*n, w*n))
         for i in range(n):
             for j in range(n):
-                I_generated[i*h:(i+1)*h, j*w:(j+1)*w] = g[i*n+j, :].reshape(28, 28)
+                I_generated[i*h:(i+1)*h, j*w:(j+1)*w] = g[i*n+j, :].reshape(64, 64)
         
         plt.figure(figsize=(8, 8))
         plt.imshow(I_generated, cmap='gray')
@@ -199,18 +199,18 @@ def main(noise_factors,debug = True):
     x_train = tf.image.resize_images(mnist.train.images, [64, 64]).eval()
     x_train = (x_train - 0.5) / 0.5  # normalization; range: -1 ~ 1
     
-    batch_size = 256
+    batch_size = 200 # X_in.shape[0] % batch_size == 0
     num_epoch = 30
     num_gen = 100
     if debug:
-        x_train = x_train[:1000]
-        batch_size = 64
+        x_train = x_train[:256] # it must be n%batch_size == 0
+        batch_size = 32
         num_epoch = 2
         num_gen = 10
     
     for noise_factor in noise_factors:
         print("noise factor: ",noise_factor)
-        path = "save_images_DCGAN/"
+        path = "save_images_DCGAN_z/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+str(noise_factor)+"/"
@@ -227,5 +227,5 @@ def main(noise_factors,debug = True):
     print("running time: ",time.time()-start_time)
     
 if __name__ == "__main__":  
-    noise_factors = np.array([0.2])
-    main(noise_factors = noise_factors,debug = True)
+    noise_factors = np.array([0.2,0.4])
+    main(noise_factors = noise_factors,debug = False)
