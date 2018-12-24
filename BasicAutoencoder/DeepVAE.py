@@ -96,7 +96,7 @@ class VariantionalAutoencoder(object):
         return loss, recon_loss, latent_loss
     
     
-    def fit(self, X, path = "", file_name="", num_epoch = 100, batch_size = 64):
+    def fit(self, X, path = "", file_name="", num_epoch = 100, batch_size = 64, verbose=False):
         """
         X: data to be fit
         num_epoch: number of epoch
@@ -112,7 +112,7 @@ class VariantionalAutoencoder(object):
             ls_loss.append(loss)
             re_loss.append(recon_loss)
             la_loss.append(latent_loss)
-            if epoch % 1 == 0:
+            if verbose and epoch % 1 == 0:
                 #vae.plot(FLAG_gen = True, x = "", num_gen=100, path=path,fig_name='generator'+str(epoch)+'.png')
                 print('[epoch {}] Loss: {}, Recon loss: {}, Latent loss: {}'.format(
                     epoch, loss, recon_loss, latent_loss))
