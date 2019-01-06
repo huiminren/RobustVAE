@@ -14,9 +14,9 @@ def l21shrink(epsilon, x):
     """
     output = x.copy()
     norm = np.linalg.norm(x, ord=2, axis=0)
-    for i in xrange(x.shape[1]):
+    for i in range(x.shape[1]):
         if norm[i] > epsilon:
-            for j in xrange(x.shape[0]):
+            for j in range(x.shape[0]):
                 output[j,i] = x[j,i] - epsilon * x[j,i] / norm[i]
         else:
             output[:,i] = 0.

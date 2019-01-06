@@ -4,6 +4,9 @@
 Created on Mon Dec  3 14:06:13 2018
 
 @author: huiminren
+
+@ modified on Wed, Dec 26
+@ by Chong Zhou
 """
 
 import numpy as np
@@ -11,7 +14,7 @@ import numpy.linalg as nplin
 import tensorflow as tf
 import tensorflow.examples.tutorials.mnist.input_data as input_data
 from BasicAutoencoder import DeepVAE as VAE
-from shrink import l1shrink as SHR 
+from shrink import l21shrink as SHR 
 
 import time
 from collections import Counter
@@ -149,19 +152,19 @@ def experiment(lam_list,debug = True):
             os.mkdir(path)
                 
         with tf.Graph().as_default():
-            with tf.Session as sess:
-        rvae = RVDAE(sess = sess, input_dim = x_train_noisy.shape[1],learning_rate = 1e-3, n_z = n_z, 
-                     lambda_=lam, error = 1.0e-7)
-        L, S, errors = rvae.fit(X = data, path = path, 
-                                num_gen = num_gen,
-                                iteration=iteration, num_epoch = num_epoch, 
-                                batch_size=batch_size, verbose=True)
-        S_sum = np.sum(np.abs(S),axis=1)
-        np.save(path+"S_sum.npy",S_sum)
+            with tf.Session() as sess:
+                rvae = RVDAE(sess = sess, input_dim = data.shape[1], learning_rate = 1e-3, n_z = n_z, 
+                             lambda_=lam, error = 1.0e-7)
+                L, S, errors = rvae.fit(X = data, path = path, 
+                                        num_gen = num_gen,
+                                        iteration=iteration, num_epoch = num_epoch, 
+                                        batch_size=batch_size, verbose=True)
+                S_sum = np.sum(np.abs(S),axis=1)
+                np.save(path+"S_sum.npy",S_sum)
         
 
     print ('Done_running time:',time.time()-start_time)
     
 if __name__ == "__main__":
     lam_list = [0.001,0.005,0.01,0.05,0.1,0.5,1.0]
-    experiment(lams = lam_list,debug = False)
+    experiment(lam_list=lam_list,debug = False)
