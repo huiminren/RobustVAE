@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sun Dec  2 13:47:48 2018
@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 #plt.switch_backend('agg')
 from tensorflow.examples.tutorials.mnist import input_data
 import os
+import time
 
 def batches(l, n):
     """Yield successive n-sized batches from l, the last batch is the left indexes."""
@@ -23,7 +24,7 @@ def batches(l, n):
         
 class VariantionalAutoencoder(object):
 
-    def __init__(self, sess, input_dim = 784, learning_rate=1e-3, n_z=5):
+    def __init__(self, sess, input_dim = 784, learning_rate=1e-3, n_z=49):
         """
         sess: tf.Session()
         input_dim: input dimension
@@ -52,7 +53,7 @@ class VariantionalAutoencoder(object):
         self.z_log_sigma_sq = fc(f3, self.n_z, scope='enc_fc4_sigma', activation_fn=None)
         eps = tf.random_normal(shape=tf.shape(self.z_log_sigma_sq),
                                mean=0, stddev=1, dtype=tf.float32)
-        self.z = self.z_mu + tf.sqrt(tf.exp(self.z_log_sigma_sq)) * eps
+        self.z = self.z_mu + tf.exp(self.z_log_sigma_sq) * eps # remove sqrt
 
         # Decode
         # z -> x_hat
@@ -70,6 +71,7 @@ class VariantionalAutoencoder(object):
             self.x * tf.log(epsilon+self.x_hat) + (1-self.x) * tf.log(epsilon+1-self.x_hat), 
             axis=1
         )
+        
         self.recon_loss = tf.reduce_mean(recon_loss)
 
         # Latent loss
@@ -107,22 +109,32 @@ class VariantionalAutoencoder(object):
         la_loss = []
         sample_size = X.shape[0]
         for epoch in range(num_epoch):
+            ls_tmp = []
+            re_tmp = []
+            la_tmp = []
             for one_batch in batches(sample_size, batch_size):
                 loss, recon_loss, latent_loss = self.run_single_step(X[one_batch])
-            ls_loss.append(loss)
-            re_loss.append(recon_loss)
-            la_loss.append(latent_loss)
+                ls_tmp.append(loss)
+                re_tmp.append(re_loss)
+                la_tmp.append(latent_loss)
+                
+            ls_loss.append(np.mean(ls_tmp))
+            re_loss.append(np.mean(re_tmp))
+            la_loss.append(np.mean(la_tmp))
             if epoch % 1 == 0:
-                #vae.plot(FLAG_gen = True, x = "", num_gen=100, path=path,fig_name='generator'+str(epoch)+'.png')
                 print('[epoch {}] Loss: {}, Recon loss: {}, Latent loss: {}'.format(
                     epoch, loss, recon_loss, latent_loss))
+#                vae.gen_plot(FLAG_gen = True, x = "", num_gen=100, path=path,fig_name='generator'+str(epoch)+'.png')
+#            if epoch == num_epoch-1:
+#                print("gid geneartion:")
+#                vae.generation_fid(path = path)
+                
+        np.save(path+file_name+"_all.npy",np.array(ls_loss))
+        np.save(path+file_name+"_recons.npy",np.array(re_loss))
+        np.save(path+file_name+"_latent.npy",np.array(la_loss))
         
-        np.save(path+file_name+"loss_all.npy",np.array(ls_loss))
-        np.save(path+file_name+"loss_recons.npy",np.array(re_loss))
-        np.save(path+file_name+"loss_latent.npy",np.array(la_loss))
         
-        
-    def plot(self,FLAG_gen = True, x="", num_gen=10, path="", fig_name=""):
+    def gen_plot(self,FLAG_gen = True, x="", num_gen=100, path="", fig_name=""):
         """
         FLAG_gen: flag of generation or reconstruction. True = generation
         x: reconstruction input
@@ -153,7 +165,16 @@ class VariantionalAutoencoder(object):
         plt.figure(figsize=(8, 8))
         plt.imshow(I_generated, cmap='gray')
         plt.savefig(path+fig_name)
-        plt.show()
+#        plt.show()
+        
+    # for FID
+    def generation_fid(self,path):
+        start_time = time.time()
+        z_fid = np.random.normal(size=[10, self.n_z])
+        generation_fid = self.generator(z_fid)
+        np.save(path+"generation_fid.npy",generation_fid)
+        np.save(path+"gen_fid_time.npy",np.array(time.time()-start_time))
+        
         
     # x -> x_hat
     def reconstructor(self, x):
@@ -174,14 +195,15 @@ if __name__ == "__main__":
     mnist = input_data.read_data_sets('../MNIST_data/', one_hot=True)
     x_train = mnist.train.images
     input_dim = x_train.shape[1]
-    n_z = 5
-    batch_size = 256
-    num_epoch = 30
-    noise_factors = [0.2,0.4]
+
+    n_z = 49
+    batch_size = 200
+    num_epoch = 2
+    noise_factors = [0.2]
     
     for noise_factor in noise_factors:
         print("noise factor: ",noise_factor)
-        path = "./save_images_vae/"
+        path = "vae_test/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+str(noise_factor)+"/"
@@ -190,7 +212,6 @@ if __name__ == "__main__":
         
         x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
         x_train_noisy = np.clip(x_train_noisy, 0., 1.)
-        
     
         tf.reset_default_graph()
         with tf.Session() as sess:
