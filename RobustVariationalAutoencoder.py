@@ -137,19 +137,17 @@ def main(noise_factors,lambdas,debug = True):
         num_epoch = 2
         num_gen = 10
     
-    lambda_running_time = []
     for lambda_ in lambdas:
         print("lambda:",lambda_)
-        path = "./rvae/"
+        path = "./rvae_gaussian_noise/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+"lambda_"+str(lambda_)+"/"
         if not os.path.exists(path):
             os.mkdir(path)
-        noise_running_time = []
         for noise_factor in noise_factors:
             print("noise factor: ",noise_factor)
-            path = "./rvae/"+"lambda_"+str(lambda_)+"/"
+            path = "./rvae_gaussian_noise/"+"lambda_"+str(lambda_)+"/"
             path = path+"noise_"+str(noise_factor)+"/"
             if not os.path.exists(path):
                 os.mkdir(path)
@@ -157,7 +155,7 @@ def main(noise_factors,lambdas,debug = True):
             start_time = time.time()
             np.random.seed(595)
             x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
-            x_train_noisy = np.clip(x_train_noisy, 0., 1.)
+#            x_train_noisy = np.clip(x_train_noisy, 0., 1.)
             
             tf.reset_default_graph()
             sess = tf.Session()
@@ -174,11 +172,9 @@ def main(noise_factors,lambdas,debug = True):
             print ("lambda:"+str(lambda_)+" noise factor: "+
                    str(noise_factor)+' running time:',time.time()-start_time)
             
-            noise_running_time.append(time.time()-start_time)
-        lambda_running_time.append(noise_running_time)
-    np.save('./rvae/running_time.npy',np.array(lambda_running_time))
+            np.save(path+'running_time.npy',np.array(time.time()-start_time))
     
 if __name__ == "__main__":
-    noise_factors = np.arange(0,1.1,0.1)
-    lambdas = np.array([0.1,1,10,50,100,250,500,1000,1500,2000])
+    lambdas = [0.1]
+    noise_factors = [0.0]
     main(noise_factors,lambdas,debug = False)
