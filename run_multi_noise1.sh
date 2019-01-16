@@ -1,9 +1,6 @@
 #!/bin/bash
-for noise in $(seq 0.1 0.1 1)
+for noise in $(seq 0.0 0.1 1)
 do
-    for lambda in 0.1 1 5 10 15 20 25 50 70 100 250;
-    do
-        echo "lambda = $lambda, noise = $noise"
-        sbatch test_run.sh $lambda $noise
-    done
+    echo "noise = $noise"
+    sbatch --job-name=GAN_$noise --output=GAN_noise_$noise.out test_run.sh $noise
 done
