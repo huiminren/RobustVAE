@@ -164,14 +164,25 @@ np.random.seed(595)
 # load MNIST
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
 train_set = mnist.train.images
-train_set = train_set + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=train_set.shape)
-train_set = np.clip(train_set, 0., 1.)
+def corrupt(X,corNum=10):
+    N,p = X.shape[0],X.shape[1]
+    for i in range(N):
+        loclist = np.random.randint(0, p, size = corNum)
+        for j in loclist:
+            if X[i,j] > 0.5:
+                X[i,j] = 0
+            else:
+                X[i,j] = 1
+train_set = corrupt(train_set, corNum = 150)
+
+# train_set = train_set + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=train_set.shape)
+# train_set = np.clip(train_set, 0., 1.)
 # plot image after adding noise
 if not os.path.isdir('MNIST_GAN_results'+noise_factor_S):
     os.mkdir('MNIST_GAN_results'+noise_factor_S)
 noise_img_path = 'MNIST_GAN_results'+noise_factor_S+ '/initial_noise.png'
 show_noise(train_set[0:100], noise_img_path, show=False)
-
+exit(0)
 # train_set = (mnist.train.images - 0.5) / 0.5  # normalization; range: -1 ~ 1
 
 # networks : generator

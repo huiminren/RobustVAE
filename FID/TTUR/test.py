@@ -14,7 +14,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 ########
 
 
-input_path = 'rvae'
+input_path = './GAN_sameStructure_result'
 #data_path = '../../MNIST_data/' # set path to training set images
 #output_path = 'fid_stats_MNIST.npz' # path for where to store the statistics
 # if you have downloaded and extracted
@@ -37,10 +37,10 @@ mnist = input_data.read_data_sets(data_path, one_hot=True)
 images = mnist.train.images
 '''
 
-path = "./fid_precalc/"
-l = 0.1
+path = "./fid_precalc_GAN/"
+
 nr = 0.0
-data_path = input_path+'/lambda_'+str(l)+'/noise_'+str(nr)+'/generation_fid.npy'
+data_path = input_path+'/MNIST_GAN_results'+str(nr)+'/saved_result4FID.npy'
 images = np.load(data_path)
 images = np.reshape(images, [-1, 28, 28])
 images = images[0:10000]
@@ -57,6 +57,6 @@ print("calculte FID stats..", end=" ", flush=True)
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     mu, sigma = fid.calculate_activation_statistics(images, sess, batch_size=100)
-    output_path = 'fid_stats_lambda_'+str(l)+'noise_'+str(nr)
+    output_path = 'fid_stats_noise_'+str(nr)
     np.savez_compressed(path+output_path, mu=mu, sigma=sigma)
 print("finished")

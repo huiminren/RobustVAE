@@ -15,7 +15,6 @@ from shrink import l1shrink as SHR
 
 import time
 from collections import Counter
-import matplotlib.pyplot as plt 
 
 import os
 
@@ -69,7 +68,7 @@ class RVDAE(object):
             ## alternating project, first project to L
             self.L = X - self.S
             ## Using L to train the auto-encoder
-            self.vae.fit(X = self.L, path = path, file_name = "vae_loss"+str(it)+".npy",
+            self.vae.fit(X = self.L, path = path, file_name = "vae_loss"+str(it),
                          num_epoch = num_epoch, batch_size = batch_size)
             ## get optmized L
             self.L = self.vae.reconstructor(self.L)
@@ -84,13 +83,13 @@ class RVDAE(object):
             
             if it % 1 == 0 :
                 print("generation images:")
-                self.vae.plot(FLAG_gen = True, x="", num_gen=num_gen, 
+                self.vae.gen_plot(FLAG_gen = True, x="", num_gen=num_gen, 
                               path=path, 
                               fig_name="generator_"+str(it)+".png")
-                print("reconstruction images:")
-                self.vae.plot(FLAG_gen = False, x=self.L[:100], num_gen=num_gen, 
-                              path=path, 
-                              fig_name="reconstructor_"+str(it)+".png")
+                
+            if it == iteration-1:
+                print("generate fid images")
+                self.vae.generation_fid(path=path)
             
             if verbose:
                 print ("c1: ", c1)
@@ -120,17 +119,17 @@ class RVDAE(object):
     
     
  
-def main(noise_factors,debug = True):
+def main(noise_factors,lambdas,debug = True):
             
-    start_time = time.time()
+    
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=False)
     x_train = mnist.train.images
     
     n_z = 49
     
-    batch_size = 256
+    batch_size = 200
     iteration = 30
-    num_epoch = 30
+    num_epoch = 20
     num_gen = 100
     if debug:
         batch_size = 64
@@ -138,50 +137,44 @@ def main(noise_factors,debug = True):
         num_epoch = 2
         num_gen = 10
     
-    
-    for noise_factor in noise_factors:
-        print("noise factor: ",noise_factor)
-        path = "./save_images_l100_rvae3/"
+    for lambda_ in lambdas:
+        print("lambda:",lambda_)
+        path = "./rvae_gaussian_noise/"
         if not os.path.exists(path):
             os.mkdir(path)
-        path = path+str(noise_factor)+"/"
+        path = path+"lambda_"+str(lambda_)+"/"
         if not os.path.exists(path):
             os.mkdir(path)
-        
-        x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
-        x_train_noisy = np.clip(x_train_noisy, 0., 1.)
-        
-        tf.reset_default_graph()
-        sess = tf.Session()
-        rvae = RVDAE(sess = sess, input_dim = x_train_noisy.shape[1],learning_rate = 1e-3, n_z = n_z, 
-                     lambda_=100, error = 1.0e-7)
-        L, S, errors = rvae.fit(X = x_train_noisy, path = path, 
-                                num_gen = num_gen,
-                                iteration=iteration, num_epoch = num_epoch, 
-                                batch_size=batch_size, verbose=True)
-        
-        x_axis = np.arange(len(errors))
-        plt.plot(x_axis, errors, 'r-')
-        plt.xlabel('epoch')
-        plt.ylabel('loss')
-        plt.title('Plot of trainloss')
-        plt.savefig(path+"rvae_loss.png")
-        plt.show()
-        
-        np.save(path+"rvae_errors.npy",errors)
-        rvae_recon = rvae.getRecon(x_train_noisy) # get reconstruction
-        rvae_transform = rvae.transform(x_train_noisy) # get transformer
-
-        
-        np.save(path+"rvae_recon.npy",rvae_recon)
-        np.save(path+"rvae_transform.npy",rvae_transform)
-        
-        sess.close()
-        print ("number of zero values in S:", Counter(S.reshape(S.size))[0])
-        
-
-    print ('Done_running time:',time.time()-start_time)
+        for noise_factor in noise_factors:
+            print("noise factor: ",noise_factor)
+            path = "./rvae_gaussian_noise/"+"lambda_"+str(lambda_)+"/"
+            path = path+"noise_"+str(noise_factor)+"/"
+            if not os.path.exists(path):
+                os.mkdir(path)
+                
+            start_time = time.time()
+            np.random.seed(595)
+            x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
+#            x_train_noisy = np.clip(x_train_noisy, 0., 1.)
+            
+            tf.reset_default_graph()
+            sess = tf.Session()
+            rvae = RVDAE(sess = sess, input_dim = x_train_noisy.shape[1],learning_rate = 1e-3, n_z = n_z, 
+                         lambda_=lambda_, error = 1.0e-7)
+            L, S, errors = rvae.fit(X = x_train_noisy, path = path, 
+                                    num_gen = num_gen,
+                                    iteration=iteration, num_epoch = num_epoch, 
+                                    batch_size=batch_size, verbose=True)
+            
+            sess.close()
+            print ("number of zero values in S:", Counter(S.reshape(S.size))[0])
+            
+            print ("lambda:"+str(lambda_)+" noise factor: "+
+                   str(noise_factor)+' running time:',time.time()-start_time)
+            
+            np.save(path+'running_time.npy',np.array(time.time()-start_time))
     
 if __name__ == "__main__":
-    noise_factors = np.array([0.2,0.4])
-    main(noise_factors = noise_factors,debug = False)
+    lambdas = [0.1]
+    noise_factors = [0.0]
+    main(noise_factors,lambdas,debug = False)
