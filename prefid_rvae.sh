@@ -6,4 +6,4 @@
 #SBATCH -o prefid_rvae.out
 
 sacct --format="CPUTime,MaxRSS"
-python prefid_vae.py $1 $2
+python prefid_rvae.py $1 $2
