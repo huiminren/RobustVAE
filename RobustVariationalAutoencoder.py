@@ -14,6 +14,7 @@ from BasicAutoencoder import DeepVAE as VAE
 from shrink import l1shrink as SHR 
 
 import time
+import sys
 from collections import Counter
 
 import os
@@ -187,6 +188,12 @@ def main(noise_factors,lambdas,debug = True):
             np.save(path+'running_time.npy',np.array(time.time()-start_time))
     
 if __name__ == "__main__":
-    noise_factors = [0.6]
-    lambdas = [70]
-    main(noise_factors,lambdas,debug = True)
+    if len(sys.argv)>2:
+        lambdas = [int(sys.argv[1])]
+        noise_factors = [float(sys.argv[2])]
+    else:
+        lambdas = [0.1]
+        noise_factors = [round(i*0.01,2) for i in range(1,52,2)]
+    #noise_factors = [0.1]
+    #lambdas = [0.1,1,5,10,15,20,25,50,70,100,250]
+    main(noise_factors,lambdas,debug = False)
