@@ -82,36 +82,48 @@ class Deep_CNNVAE(object):
         return tf.maximum(x, tf.multiply(x, alpha))
     
     def encoder(self, X_in, keep_prob):
-        activation = self.lrelu
+#        activation = self.lrelu
+        activation = tf.nn.sigmoid
         with tf.variable_scope("encoder", reuse=None):
             X = tf.reshape(X_in, shape=[-1, self.input_dim, self.input_dim, self.dec_in_channels])
             x = tf.layers.conv2d(X, filters=64, kernel_size=4, strides=2, padding='same', activation=activation)
+            print(x)
             x = tf.nn.dropout(x, keep_prob)
             x = tf.layers.conv2d(x, filters=64, kernel_size=4, strides=2, padding='same', activation=activation)
+            print(x)
             x = tf.nn.dropout(x, keep_prob)
             x = tf.layers.conv2d(x, filters=64, kernel_size=4, strides=1, padding='same', activation=activation)
+            print(x)
             x = tf.nn.dropout(x, keep_prob)
             x = tf.contrib.layers.flatten(x)
+            print(x)
             mn = tf.layers.dense(x, units=self.n_latent)
-            sd = 0.5 * tf.layers.dense(x, units=self.n_latent)            
+            sd = tf.layers.dense(x, units=self.n_latent)            
             epsilon = tf.random_normal(tf.stack([tf.shape(x)[0], self.n_latent])) 
             z  = mn + tf.multiply(epsilon, tf.exp(sd))
-            
+            print(z)
             return z, mn, sd   
         
     def decoder(self, sampled_z, keep_prob):
         with tf.variable_scope("decoder", reuse=None):
-            x = tf.layers.dense(sampled_z, units=self.inputs_decoder, activation=self.lrelu)
-            x = tf.layers.dense(x, units=self.inputs_decoder * 2 + 1, activation=self.lrelu)
+            activation = tf.nn.sigmoid
+            x = tf.layers.dense(sampled_z, units=self.inputs_decoder, activation=activation)
+            print(x)
+            x = tf.layers.dense(x, units=self.inputs_decoder * 2 + 1, activation=activation)
+            print(x)
             x = tf.reshape(x, self.reshaped_dim)
-            x = tf.layers.conv2d_transpose(x, filters=64, kernel_size=4, strides=2, padding='same', activation=tf.nn.relu)
+            x = tf.layers.conv2d_transpose(x, filters=64, kernel_size=4, strides=2, padding='same', activation=activation)
+            print(x)
             x = tf.nn.dropout(x, keep_prob)
-            x = tf.layers.conv2d_transpose(x, filters=64, kernel_size=4, strides=1, padding='same', activation=tf.nn.relu)
+            x = tf.layers.conv2d_transpose(x, filters=64, kernel_size=4, strides=1, padding='same', activation=activation)
+            print(x)
             x = tf.nn.dropout(x, keep_prob)
-            x = tf.layers.conv2d_transpose(x, filters=64, kernel_size=4, strides=1, padding='same', activation=tf.nn.relu)
-            
+            x = tf.layers.conv2d_transpose(x, filters=64, kernel_size=4, strides=1, padding='same', activation=activation)
+            print(x)
             x = tf.contrib.layers.flatten(x)
+            print(x)
             x = tf.layers.dense(x, units=self.input_dim*self.input_dim, activation=tf.nn.sigmoid)
+            print(x)
             img = tf.reshape(x, shape=[-1, self.input_dim, self.input_dim])
             
             return img        
@@ -130,9 +142,11 @@ class Deep_CNNVAE(object):
             for one_batch in batches(sample_size, batch_size):
                 loss, img_loss, latent_loss = self.run_single_step(X_in[one_batch],keep_prob)
             ls_loss.append(loss)
-            if epoch % 5 == 0:
+            if epoch % 1 == 0:
                 print('[epoch {}] Loss: {}, Recon loss: {}, Latent loss: {}'.format(
                     epoch, loss, img_loss, latent_loss))
+                self.plot(FLAG_gen = True, x="", num_gen=100, path=path, fig_name="generator_"+str(epoch)+".png")
+                
         np.save(path+file_name,np.array(ls_loss))
                 
     def plot(self,FLAG_gen = True, x="", num_gen=10, path="", fig_name=""):
@@ -187,12 +201,12 @@ class Deep_CNNVAE(object):
 if __name__ == "__main__":
     start_time = time.time()
     
-    root = 'save_images_cnn/'
+    root = 'cnn_test2/'
     if not os.path.isdir(root):
         os.mkdir(root)
     
-    batch_size = 64
-    n_latent = 8
+    batch_size = 200
+    n_latent = 5
     input_dim = 28
     
     mnist = input_data.read_data_sets("../MNIST_data/", one_hot=False)
@@ -207,50 +221,50 @@ if __name__ == "__main__":
     with tf.Session() as sess:
         cnnvae = Deep_CNNVAE(sess = sess, learning_rate = 1e-3, n_latent = n_latent,
                              input_dim = input_dim, dec_in_channels = 1)
-        cnnvae.fit(X_in, path = "", file_name="", num_epoch = 1, batch_size = batch_size,keep_prob = 1.0)
+        cnnvae.fit(X_in, path = root, file_name="", num_epoch = 20, batch_size = batch_size,keep_prob = 1.0)
         
 #        saver.restore(sess,"model_cnn.ckpt")
         # Test the trained model: reconstruction
-        x_reconstructed = cnnvae.reconstructor(test,1)
-        x_transformer = cnnvae.transformer(test,1)
+#        x_reconstructed = cnnvae.reconstructor(test,1)
+#        x_transformer = cnnvae.transformer(test,1)
         
-        np.save(root+"rvae_recon.npy",x_reconstructed)
-        np.save(root+"rvae_transform.npy",x_transformer)
+#        np.save(root+"rvae_recon.npy",x_reconstructed)
+#        np.save(root+"rvae_transform.npy",x_transformer)
+#        
         
-        
-        w = h = input_dim
-        
-        n = np.sqrt(batch_size).astype(np.int32)
-        I_reconstructed = np.empty((h*n, 2*w*n))
-        for i in range(n):
-            for j in range(n):
-                x = np.concatenate(
-                    (x_reconstructed[i*n+j, :].reshape(h, w), 
-                     test[i*n+j, :].reshape(h, w)),
-                    axis=1
-                )
-                I_reconstructed[i*h:(i+1)*h, j*2*w:(j+1)*2*w] = x
-        
-        plt.figure(figsize=(10, 20))
-        plt.title('reconstruction of test images')
-        plt.imshow(I_reconstructed, cmap='gray')
-        plt.show()
-        plt.savefig(root+"cnnvae_reconstruction.png")
-
-        # Test the trained model: generation
-        # Sample noise vectors from N(0, 1)
-        z = np.random.normal(size=[batch_size, n_latent])
-        x_generated = cnnvae.generator(z,1)
-        np.save(root+"rvae_generated.npy",x_generated)
-        
-        n = np.sqrt(batch_size).astype(np.int32)
-        I_generated = np.empty((h*n, w*n))
-        for i in range(n):
-            for j in range(n):
-                I_generated[i*h:(i+1)*h, j*w:(j+1)*w] = x_generated[i*n+j, :].reshape(input_dim, input_dim)
-        
-        plt.figure(figsize=(8, 8))
-        plt.title('generation from random noise')
-        plt.imshow(I_generated, cmap='gray')
+#        w = h = input_dim
+#        
+#        n = np.sqrt(batch_size).astype(np.int32)
+#        I_reconstructed = np.empty((h*n, 2*w*n))
+#        for i in range(n):
+#            for j in range(n):
+#                x = np.concatenate(
+#                    (x_reconstructed[i*n+j, :].reshape(h, w), 
+#                     test[i*n+j, :].reshape(h, w)),
+#                    axis=1
+#                )
+#                I_reconstructed[i*h:(i+1)*h, j*2*w:(j+1)*2*w] = x
+#        
+#        plt.figure(figsize=(10, 20))
+#        plt.title('reconstruction of test images')
+#        plt.imshow(I_reconstructed, cmap='gray')
 #        plt.show()
-        plt.savefig(root+"cnnvae_generator.png")
+#        plt.savefig(root+"cnnvae_reconstruction.png")
+#
+#        # Test the trained model: generation
+#        # Sample noise vectors from N(0, 1)
+#        z = np.random.normal(size=[batch_size, n_latent])
+#        x_generated = cnnvae.generator(z,1)
+#        np.save(root+"rvae_generated.npy",x_generated)
+#        
+#        n = np.sqrt(batch_size).astype(np.int32)
+#        I_generated = np.empty((h*n, w*n))
+#        for i in range(n):
+#            for j in range(n):
+#                I_generated[i*h:(i+1)*h, j*w:(j+1)*w] = x_generated[i*n+j, :].reshape(input_dim, input_dim)
+#        
+#        plt.figure(figsize=(8, 8))
+#        plt.title('generation from random noise')
+#        plt.imshow(I_generated, cmap='gray')
+##        plt.show()
+#        plt.savefig(root+"cnnvae_generator.png")

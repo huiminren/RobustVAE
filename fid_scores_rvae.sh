@@ -3,7 +3,7 @@
 #SBATCH -n 8
 #SBATCH --mem=16G
 #SBATCH -p short
-#SBATCH -o prefid_rvae.out
+#SBATCH -o fid_scores_rvae.out
 
 sacct --format="CPUTime,MaxRSS"
-python prefid_vae.py $1 $2
+python fid_scores.py $1 $2

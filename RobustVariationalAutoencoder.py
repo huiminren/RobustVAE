@@ -1,7 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Dec  3 14:06:13 2018
+Created on Sun Jan 13 23:40:28 2019
 
 @author: huiminren
 """
@@ -17,6 +17,17 @@ import time
 from collections import Counter
 
 import os
+
+def corrupt(X,corNum=10):
+    N,p = X.shape[0],X.shape[1]
+    for i in range(N):
+        loclist = np.random.randint(0, p, size = corNum)
+        for j in loclist:
+            if X[i,j] > 0.5:
+                X[i,j] = 0
+            else:
+                X[i,j] = 1
+    return X
 
 class RVDAE(object):
     """
@@ -139,7 +150,7 @@ def main(noise_factors,lambdas,debug = True):
     
     for lambda_ in lambdas:
         print("lambda:",lambda_)
-        path = "./rvae_gaussian_noise/"
+        path = "./rvae_sp_noise/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+"lambda_"+str(lambda_)+"/"
@@ -147,15 +158,16 @@ def main(noise_factors,lambdas,debug = True):
             os.mkdir(path)
         for noise_factor in noise_factors:
             print("noise factor: ",noise_factor)
-            path = "./rvae_gaussian_noise/"+"lambda_"+str(lambda_)+"/"
+            path = "./rvae_sp_noise/"+"lambda_"+str(lambda_)+"/"
             path = path+"noise_"+str(noise_factor)+"/"
             if not os.path.exists(path):
                 os.mkdir(path)
                 
             start_time = time.time()
             np.random.seed(595)
-            x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
+#            x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
 #            x_train_noisy = np.clip(x_train_noisy, 0., 1.)
+            x_train_noisy = corrupt(x_train, corNum = int(noise_factor*784))
             
             tf.reset_default_graph()
             sess = tf.Session()
@@ -175,6 +187,6 @@ def main(noise_factors,lambdas,debug = True):
             np.save(path+'running_time.npy',np.array(time.time()-start_time))
     
 if __name__ == "__main__":
-    lambdas = [0.1]
-    noise_factors = [0.0]
-    main(noise_factors,lambdas,debug = False)
+    noise_factors = [0.6]
+    lambdas = [70]
+    main(noise_factors,lambdas,debug = True)

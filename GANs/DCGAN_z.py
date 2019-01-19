@@ -183,6 +183,8 @@ class DCGAN(object):
         plt.savefig(path+fig_name)
         plt.show()
         
+        
+        
     def get_generation(self, z):
         return self.sess.run(self.G_z, feed_dict={self.z: z, self.isTrain: False})
     
@@ -197,7 +199,7 @@ def main(noise_factors,debug = True):
     
     mnist = input_data.read_data_sets("MNIST_data/", one_hot=True, reshape=[])
     x_train = tf.image.resize_images(mnist.train.images, [64, 64]).eval()
-    x_train = (x_train - 0.5) / 0.5  # normalization; range: -1 ~ 1
+#    x_train = (x_train - 0.5) / 0.5  # normalization; range: -1 ~ 1
     
     batch_size = 200 # X_in.shape[0] % batch_size == 0
     num_epoch = 30
@@ -220,7 +222,7 @@ def main(noise_factors,debug = True):
         x_train_noisy = x_train + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_train.shape) 
         x_train_noisy = np.clip(x_train_noisy, 0., 1.)
         
-        
+        tf.reset_default_graph()
         dcgan = DCGAN(sess, noise_dim = 100, learning_rate = 1e-3, batch_size = batch_size)
         dcgan.fit(x_train_noisy,path = path, num_gen = num_gen, num_epoch = num_epoch)
     sess.close()

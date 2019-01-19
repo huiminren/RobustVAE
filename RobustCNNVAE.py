@@ -186,4 +186,4 @@ def main(noise_factors,debug = True):
     
 if __name__ == "__main__":
     noise_factors = np.array([0.2,0.4])
-    main(noise_factors = noise_factors,debug = True)
+    main(noise_factors = noise_factors,debug = False)
