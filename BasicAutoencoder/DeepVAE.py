@@ -170,7 +170,7 @@ class VariantionalAutoencoder(object):
     # for FID
     def generation_fid(self,path):
         start_time = time.time()
-        z_fid = np.random.normal(size=[10, self.n_z])
+        z_fid = np.random.normal(size=[10000, self.n_z])
         generation_fid = self.generator(z_fid)
         np.save(path+"generation_fid.npy",generation_fid)
         np.save(path+"gen_fid_time.npy",np.array(time.time()-start_time))
