@@ -70,8 +70,11 @@ def discriminator(x, drop_out):
 
 digit_n = 10
 n_sample_from = 49
+h = w = 28
 fixed_z_ = np.random.normal(0, 1, (digit_n*digit_n, n_sample_from))
 def show_result(sess, G_z, z, drop_out, num_epoch, show = False, save = False, path = 'result.png', isFix=False):
+    np.random.seed(595)
+
     z_ = np.random.normal(0, 1, (digit_n*digit_n, n_sample_from))
 
     if isFix:
@@ -79,20 +82,33 @@ def show_result(sess, G_z, z, drop_out, num_epoch, show = False, save = False, p
     else:
         test_images = sess.run(G_z, {z: z_, drop_out: 0.0})
 
-    size_figure_grid = digit_n
-    fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(digit_n, digit_n))
-    for i, j in itertools.product(range(size_figure_grid), range(size_figure_grid)):
-        ax[i, j].get_xaxis().set_visible(False)
-        ax[i, j].get_yaxis().set_visible(False)
+    # size_figure_grid = digit_n
 
-    for k in range(digit_n*digit_n):
-        i = k // digit_n
-        j = k % digit_n
-        ax[i, j].cla()
-        ax[i, j].imshow(np.reshape(test_images[k], (28, 28)), cmap='gray')
+    # fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(digit_n, digit_n))
+    # for i, j in itertools.product(range(size_figure_grid), range(size_figure_grid)):
+    #     ax[i, j].get_xaxis().set_visible(False)
+    #     ax[i, j].get_yaxis().set_visible(False)
 
-    label = 'Epoch {0}'.format(num_epoch)
-    fig.text(0.5, 0.04, label, ha='center')
+
+    # for k in range(digit_n*digit_n):
+        # i = k // digit_n
+        # j = k % digit_n
+        # ax[i, j].cla()
+        # ax[i, j].imshow(np.reshape(test_images[k], (28, 28)), cmap='gray')
+
+    # label = 'Epoch {0}'.format(num_epoch)
+    # fig.text(0.5, 0.04, label, ha='center')
+    # plot of generation
+
+        # plot of generation
+    I_generated = np.empty((h * digit_n, w * digit_n))
+    for i in range(digit_n):
+        for j in range(digit_n):
+            k = i*10 + j
+            I_generated[i * h:(i + 1) * h, j * w:(j + 1) * w] = test_images[k].reshape(28, 28)
+
+    plt.figure(figsize=(8, 8))
+    plt.imshow(I_generated, cmap='gray')
     plt.savefig(path)
 
     if show:
@@ -102,20 +118,30 @@ def show_result(sess, G_z, z, drop_out, num_epoch, show = False, save = False, p
 
 def show_noise(test_images, path, noise_factor, show=False):
 
-    size_figure_grid = digit_n
-    fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(digit_n, digit_n))
-    for i, j in itertools.product(range(size_figure_grid), range(size_figure_grid)):
-        ax[i, j].get_xaxis().set_visible(False)
-        ax[i, j].get_yaxis().set_visible(False)
+    # size_figure_grid = digit_n
+    # fig, ax = plt.subplots(size_figure_grid, size_figure_grid, figsize=(digit_n, digit_n))
+    # for i, j in itertools.product(range(size_figure_grid), range(size_figure_grid)):
+    #     ax[i, j].get_xaxis().set_visible(False)
+    #     ax[i, j].get_yaxis().set_visible(False)
+    #
+    # for k in range(digit_n*digit_n):
+    #     i = k // digit_n
+    #     j = k % digit_n
+    #     ax[i, j].cla()
+    #     ax[i, j].imshow(np.reshape(test_images[k], (28, 28)), cmap='gray')
+    #
+    # label = 'Noise Factor {}'.format(noise_factor)
+    # fig.text(0.5, 0.04, label, ha='center')
+    # plt.savefig(path)
 
-    for k in range(digit_n*digit_n):
-        i = k // digit_n
-        j = k % digit_n
-        ax[i, j].cla()
-        ax[i, j].imshow(np.reshape(test_images[k], (28, 28)), cmap='gray')
+    I_generated = np.empty((h * digit_n, w * digit_n))
+    for i in range(digit_n):
+        for j in range(digit_n):
+            k = i*10 + j
+            I_generated[i * h:(i + 1) * h, j * w:(j + 1) * w] = test_images[k].reshape(28, 28)
 
-    label = 'Noise Factor {}'.format(noise_factor)
-    fig.text(0.5, 0.04, label, ha='center')
+    plt.figure(figsize=(8, 8))
+    plt.imshow(I_generated, cmap='gray')
     plt.savefig(path)
 
     if show:
@@ -156,8 +182,8 @@ def main(noise_factor):
     # training parameters
     batch_size = 200
     lr = 0.0002
-    train_epoch = 1
-    n_4_FID = 10
+    train_epoch = 600
+    n_4_FID = 10000
     # noise_factor = 0.2
     noise_factor_S = str(noise_factor)
     np.random.seed(595)
