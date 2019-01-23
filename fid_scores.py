@@ -13,7 +13,7 @@ mu_real, sigma_real = f['mu'][:], f['sigma'][:]
 f.close()
 
 lambdas = [1,5,10,15,20,25,50,70,100,250]
-noise_factors = [i*0.01 for i in range(1,52,2)]
+noise_factors = [round(i*0.01,2) for i in range(1,52,4)]
 
 
 fid_scores = []
