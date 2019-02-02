@@ -251,7 +251,7 @@ def main(data_source, noise_method, noise_factors,debug=True):
     
     for noise_factor in noise_factors:
         print("noise factor: ",noise_factor)
-        path = output+"/RPCA_"+data_source+"_"+noise_method+"/"
+        path = output+"/LPF_"+data_source+"_"+noise_method+"/"
         if not os.path.exists(path):
             os.mkdir(path)
         path = path+str(noise_factor)+"/"
@@ -285,7 +285,7 @@ if __name__ == '__main__':
         main(data_source, noise_method, noise_factors,debug = True)
     else:
         if noise_method == 'sp':
-            noise_factors = [round(i*0.01,2) for i in range(1,52,2)]
+            noise_factors = [round(i*0.01,2) for i in range(1,52,4)]
         if noise_method == 'gs':
             noise_factors = [round(i*0.1,1) for i in range(1,10)]
         data_sources = ['MNIST','FASHION']
