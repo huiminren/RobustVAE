@@ -146,7 +146,7 @@ class Deep_CNNVAE(object):
             print(lrelu4)
             # output layer
             conv5 = tf.layers.conv2d_transpose(lrelu4, 1, [4, 4], strides=(2, 2), padding='same')
-            img = tf.nn.tanh(conv5)
+            img = tf.nn.sigmoid(conv5)
             print(conv5)
             
             return img        
