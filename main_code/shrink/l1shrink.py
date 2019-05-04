@@ -1,6 +1,6 @@
 import numpy as np
 
-def shrink(epsilon, x):
+def shrink(epsilon, X_in):
     """
     @Original Author: Prof. Randy
     @Modified by: Chong Zhou
@@ -12,13 +12,12 @@ def shrink(epsilon, x):
     Returns:
         The shrunk vector
     """
-    output = np.array(x*0.)
-
-    for i in range(len(x)):
-        if x[i] > epsilon:
-            output[i] = x[i] - epsilon
-        elif x[i] < -epsilon:
-            output[i] = x[i] + epsilon
-        else:
-            output[i] = 0
-    return output
+    x = X_in.copy()
+    t1 = x > epsilon
+    t2 = x < epsilon
+    t3 = x > -epsilon
+    t4 = x < -epsilon
+    x[t2 & t3] = 0
+    x[t1] = x[t1] - epsilon
+    x[t4] = x[t4] + epsilon
+    return x
