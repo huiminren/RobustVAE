@@ -30,7 +30,7 @@ def main(model, noise_factors, lambdas):
             data_path = input_path+'lambda_'+str(l)+'/noise_'+str(nr)+'/generation_fid.npy'
             output_name = 'fid_stats_lambda_'+str(l)+'noise_'+str(nr)
             images = np.load(data_path)
-            images = np.transpose(images,(0,2,3,1)) # bs, h, w, c
+            images = np.transpose(images*255,(0,2,3,1))
             #images = np.stack((((images*255)).reshape(-1,28,28),)*3,axis=-1)
             
             print("create inception graph..", end=" ", flush=True)
