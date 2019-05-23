@@ -118,10 +118,10 @@ class VAE_Net(nn.Module):
     
     def decoder(self,z):
         h1 = self.relu(self.d1(z)) # in_nz, out_8192, out_4
-        h1 = h1.view(-1, self.ngf*8, 4, 4) # reshape to conv2d, out_8
-        h2 = self.relu(self.dbn2(self.d2(h1))) # in_8, out_16
-        h3 = self.relu(self.dbn3(self.d3(h2))) # in_16, out_32
-        h4 = self.relu(self.dbn4(self.d4(h3))) # in_32, out_64
+        h1 = h1.view(-1, self.ngf*8, 4, 4) # reshape to conv2d, out_4
+        h2 = self.relu(self.dbn2(self.d2(h1))) # in_4, out_8
+        h3 = self.relu(self.dbn3(self.d3(h2))) # in_8, out_16
+        h4 = self.relu(self.dbn4(self.d4(h3))) # in_16, out_32
         h5 = self.sigmoid(self.dbn5(self.d5(h4))) # in_32, out_64
         return h5
     
