@@ -10,11 +10,16 @@ import torch.backends.cudnn as cudnn
 import torch.optim as optim
 import torch.utils.data
 import torchvision.datasets as dset
+import torch.utils.data as Data
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
-from dataset import load_img_align_celeba
-from gan_pytorch import showloss
+
+import glob
+from skimage.util import random_noise
+from utils import *
+import sys
+# from dataset import load_img_align_celeba
 
 # Set random seem for reproducibility
 manualSeed = 999
@@ -22,6 +27,16 @@ manualSeed = 999
 print("Random Seed: ", manualSeed)
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
+
+def showloss(G_losses, D_losses, result_dir):
+    plt.figure(figsize=(10,5))
+    plt.title("Generator and Discriminator Loss During Training")
+    plt.plot(G_losses,label="G")
+    plt.plot(D_losses,label="D")
+    plt.xlabel("iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(result_dir + '/Loss.png')
 
 def imshow(imgs, result_dir):
     plt.figure(figsize=(8,8))
@@ -109,9 +124,9 @@ class Discriminator(nn.Module):
 
 def main(noise_factor):
     # Root directory for dataset
-    dataroot = './data/img_align_celeba'
+#     dataroot = './data/img_align_celeba'
     # results save folder
-    result_dir = './result/dcgan_img_align_celeba'+str(noise_factor)
+    result_dir = './gan_celcba/dcgan_img_align_celeba'+str(noise_factor)
     if not os.path.isdir(result_dir):
         os.mkdir(result_dir)
 
@@ -143,11 +158,21 @@ def main(noise_factor):
     beta1 = 0.5
 
     # Number of GPUs available. Use 0 for CPU mode.
-    ngpu = 4
+    ngpu = 2
 
-    trainset = load_img_align_celeba(dataroot, noise_factor )
+#     trainset = load_img_align_celeba(dataroot, noise_factor)
+
+    data_files = glob.glob(os.path.join("../img_align_celeba", "*.jpg"))
+    data_files = sorted(data_files)[:100000]#[:162770]
+    data_files = np.array(data_files)
+    x_train = np.array([get_image(data_file, 148) for data_file in data_files])
+    x_train_noisy = random_noise(x_train, mode='s&p', amount = noise_factor)
+    x_train_noisy = np.transpose(x_train_noisy,(0,3,1,2)).astype(np.float32)
+    x_train_noisy = torch.tensor(x_train_noisy)
+    train_dataset = Data.TensorDataset(x_train_noisy)
+    
     # Create the dataloader
-    dataloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
+    dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size,
                                              shuffle=True, num_workers=workers)
 
     # Decide which device we want to run on
@@ -270,7 +295,7 @@ def main(noise_factor):
             optimizerG.step()
 
             # Output training stats
-            if i % 200 == 0:
+            if i % 1000 == 0:
                 print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
                       % (epoch, num_epochs, i, len(dataloader),
                          errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
@@ -280,7 +305,7 @@ def main(noise_factor):
             D_losses.append(errD.item())
 
             # Check how the generator is doing by saving G's output on fixed_noise
-            if i == len(dataloader)-1:
+            if i == len(dataloader)%10:
                 with torch.no_grad():
                     fake = netG(fixed_noise).detach().cpu()
                     np.save(result_dir+'/'+str(epoch), fake.numpy())
@@ -288,16 +313,25 @@ def main(noise_factor):
     showloss(G_losses, D_losses, result_dir)
     print(fake.min())
     print(fake.max())
-    imshow(fake, result_dir + '/LastStep.png')
-
+#     imshow(fake, result_dir + '/LastStep.png')
+    # result for FID
+    z_ = torch.randn(10000, nz, 1, 1, device=device) 
+    z_fid = netG(z_).detach().cpu()
+    np.save(result_dir + '/result4FID', z_fid.numpy())
+    
 if __name__ == '__main__':
     # parse the parameters to run from terminal arguments
-    parser = argparse.ArgumentParser(
-                    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--noisefactor', type=float, default=0.29, help='the noise factor for salt and pepper')
-    args = parser.parse_args()
+#     parser = argparse.ArgumentParser(
+#                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+#     parser.add_argument('--noisefactor', type=float, default=0.29, help='the noise factor for salt and pepper')
+#     args = parser.parse_args()
 
-    noise_factor = args.noisefactor
+#     noise_factor = args.noisefactor
+
+    if len(sys.argv)>1:
+        noise_factor = float(sys.argv[1])
+    else:
+        noise_factor = 0.1
 
     main(noise_factor)    
 
