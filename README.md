@@ -5,7 +5,7 @@
 </p>
 
 ## About
-Source code of the paper: [obust Variational Autoencoders: Generating Noise-Free Images from Corrupted Images](https://users.wpi.edu/~yli15/Includes/AdvML20_Huimin.pdf)
+Source code of the paper: [Robust Variational Autoencoders: Generating Noise-Free Images from Corrupted Images](https://users.wpi.edu/~yli15/Includes/AdvML20_Huimin.pdf)
 
 ## Results
 <p align="center">
